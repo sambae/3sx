@@ -169,13 +169,13 @@ jobs:
             done
             gh release upload "${TAG_NAME}" release-assets/* --clobber
           else
+            touch notes.md
+            echo "Automatic release for commit ${FULL_SHA}" >> notes.md
+            echo >> notes.md
+            echo "⚠️ **Disclaimer** ⚠️: This is a __pre-release__ build. Expect bugs and instability." >> notes.md
+
             gh release create "${TAG_NAME}" release-assets/* \
               --title "${SHORT_SHA}" \
               --prerelease \
-              --notes "$(cat <<'EOF'
-            Automatic release for commit ${FULL_SHA}
-
-            ⚠️ **Disclaimer** ⚠️: This is a __pre-release__ build. Expect bugs and instability.
-            EOF
-            )"
+              --notes-file notes.md
           fi
