@@ -26,7 +26,7 @@ typedef struct ConfigEntry {
     ConfigValue value;
 } ConfigEntry;
 
-static const ConfigEntry default_entries[] = {
+static ConfigEntry default_entries[] = {
     { .key = CFG_KEY_FULLSCREEN, .type = CFG_BOOL, .value.b = true },
     { .key = CFG_KEY_WINDOW_WIDTH, .type = CFG_INT, .value.i = 640 },
     { .key = CFG_KEY_WINDOW_HEIGHT, .type = CFG_INT, .value.i = 480 },
@@ -35,6 +35,11 @@ static const ConfigEntry default_entries[] = {
 
 static ConfigEntry entries[CONFIG_ENTRIES_MAX] = { 0 };
 static int entry_count = 0;
+
+static bool should_default_to_fullscreen() {
+    const char* flatpak_id = SDL_getenv("FLATPAK_ID");
+    return (flatpak_id == NULL) || (flatpak_id[0] == '\0');
+}
 
 static void trim(char* string) {
     char* p = string;
@@ -138,6 +143,9 @@ static void dump_defaults(const char* dst_path) {
 }
 
 void Config_Init() {
+    // Keep native builds fullscreen by default, but avoid first-run fullscreen in Flatpak.
+    default_entries[0].value.b = should_default_to_fullscreen();
+
     const char* pref_path = Paths_GetPrefPath();
     char* config_path;
     SDL_asprintf(&config_path, "%sconfig", pref_path);
