@@ -123,12 +123,48 @@ jobs:
           name: build-log-windows
           path: build.log
 
+  build_flatpak:
+    name: Build Flatpak
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-24.08
+      options: --privileged
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Build Flatpak
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          manifest-path: com.crowdedstreet.thirdsx.yml
+          bundle: 3SX.flatpak
+          arch: x86_64
+          cache-key: flatpak-builder-${{ github.sha }}
+          upload-artifact: false
+
+      - name: Rename bundle
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          mv 3SX.flatpak "3SX-${SHORT_SHA}-linux.flatpak"
+        shell: bash
+
+      - name: Upload Flatpak release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets-flatpak
+          path: |
+            3SX-*-linux.flatpak
+
   release:
     name: Create GitHub release
     runs-on: ubuntu-latest
     needs:
       - build_macos
       - build_windows
+      - build_flatpak
 
     steps:
       - name: Checkout repository
