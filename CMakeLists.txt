@@ -76,6 +76,8 @@ elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
         -Wno-stringop-overflow
         -Wno-restrict
         -Wno-stringop-truncation
+        -Wno-return-type
+        -Wno-unused-result
     )
 endif()
 
@@ -114,9 +116,15 @@ endif()
 set(THIRD_PARTY_DIR "${CMAKE_SOURCE_DIR}/third_party")
 find_package(ZLIB REQUIRED)
 
-set(FFMPEG_ROOT        "${THIRD_PARTY_DIR}/ffmpeg/build")
-set(SDL3_ROOT          "${THIRD_PARTY_DIR}/sdl3/build")
-set(LIBCDIO_ROOT       "${THIRD_PARTY_DIR}/libcdio/build")
+if(NOT DEFINED FFMPEG_ROOT)
+    set(FFMPEG_ROOT "${THIRD_PARTY_DIR}/ffmpeg/build")
+endif()
+if(NOT DEFINED SDL3_ROOT)
+    set(SDL3_ROOT "${THIRD_PARTY_DIR}/sdl3/build")
+endif()
+if(NOT DEFINED LIBCDIO_ROOT)
+    set(LIBCDIO_ROOT "${THIRD_PARTY_DIR}/libcdio/build")
+endif()
 set(GEKKONET_ROOT      "${THIRD_PARTY_DIR}/GekkoNet/build")
 set(SDL3_NET_ROOT      "${THIRD_PARTY_DIR}/SDL_net/build")
 set(MINIZIP_NG_ROOT    "${THIRD_PARTY_DIR}/minizip-ng/build")
@@ -251,6 +259,11 @@ elseif(UNIX)
     install(FILES
         ${PROJECT_LICENSE_FILES}
         DESTINATION share/3sx/licenses
+    )
+
+    install(FILES
+        ${CMAKE_SOURCE_DIR}/com.crowdedstreet.thirdsx.desktop
+        DESTINATION share/applications
     )
 endif()
 
