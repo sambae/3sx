@@ -3,3 +3,4 @@ Type=Application
 Name=3SX
 Exec=3sx
 Categories=Game;
+StartupNotify=true
