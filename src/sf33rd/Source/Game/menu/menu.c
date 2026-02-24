@@ -4900,13 +4900,7 @@ const u8 Menu_Max_Data_Tr[2][2][6] = { { { 4, 6, 2, 1, 0, 0 }, { 3, 2, 3, 7, 0, 
 
 static void apply_training_hitbox_display(s32 force_off) {
     if (force_off || Mode_Type != MODE_NORMAL_TRAINING || Training[0].contents[0][1][1] != 2) {
-        Debug_w[17] = 0;
-        Debug_w[18] = 0;
-        Debug_w[19] = 0;
-        Debug_w[20] = 0;
-        Debug_w[21] = 0;
-        Debug_w[22] = 0;
-        Debug_w[23] = 0;
+        Clear_Training_Hitbox_Debug_Flags();
         return;
     }
 
