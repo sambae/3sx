@@ -9,6 +9,25 @@ typedef enum FlowState { INIT, DIALOG_OPENED, COPY_ERROR, COPY_SUCCESS } Resourc
 
 static ResourceCopyingFlowState flow_state = INIT;
 
+static bool is_running_in_flatpak() {
+    const char* flatpak_id = SDL_getenv("FLATPAK_ID");
+    return (flatpak_id != NULL) && (flatpak_id[0] != '\0');
+}
+
+static void prepare_window_for_dialog() {
+    if (window == NULL || !is_running_in_flatpak()) {
+        return;
+    }
+
+    const SDL_WindowFlags flags = SDL_GetWindowFlags(window);
+
+    if ((flags & SDL_WINDOW_FULLSCREEN) != 0) {
+        SDL_SetWindowFullscreen(window, false);
+    }
+
+    SDL_RaiseWindow(window);
+}
+
 static bool file_exists(const char* path) {
     SDL_PathInfo path_info;
     SDL_GetPathInfo(path, &path_info);
@@ -32,6 +51,15 @@ static void create_resources_directory() {
 #define BUFFER_SIZE (ISO_BLOCKSIZE * CHUNK_SECTORS)
 
 static void open_file_dialog_callback(void* userdata, const char* const* filelist, int filter) {
+    (void)userdata;
+    (void)filter;
+
+    if ((filelist == NULL) || (filelist[0] == NULL) || (filelist[0][0] == '\0')) {
+        // Dialog was closed/cancelled or failed to open.
+        flow_state = INIT;
+        return;
+    }
+
     const char* iso_path = filelist[0];
 
     iso9660_t* iso = iso9660_open(iso_path);
@@ -82,6 +110,7 @@ static void open_file_dialog_callback(void* userdata, const char* const* filelis
 
 static void open_dialog() {
     flow_state = DIALOG_OPENED;
+    prepare_window_for_dialog();
     const SDL_DialogFileFilter filter = { .name = "Game iso", .pattern = "iso" };
     SDL_ShowOpenFileDialog(open_file_dialog_callback, NULL, window, &filter, 1, NULL, false);
 }
