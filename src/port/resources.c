@@ -15,6 +15,10 @@ static bool is_running_in_flatpak() {
     return (flatpak_id != NULL) && (flatpak_id[0] != '\0');
 }
 
+static bool should_use_modal_messages() {
+    return !is_running_in_flatpak();
+}
+
 static void prepare_window_for_dialog() {
     if (window == NULL || !is_running_in_flatpak()) {
         return;
@@ -139,11 +143,14 @@ bool Resources_CheckIfPresent() {
 bool Resources_RunResourceCopyingFlow() {
     switch (flow_state) {
     case INIT:
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION,
-                                 "Resources are missing",
-                                 "3SX needs resources from a copy of \"Street Fighter III: 3rd Strike\" to run. Choose "
-                                 "the iso in the next dialog",
-                                 window);
+        if (should_use_modal_messages()) {
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION,
+                                     "Resources are missing",
+                                     "3SX needs resources from a copy of \"Street Fighter III: 3rd Strike\" to run. "
+                                     "Choose "
+                                     "the iso in the next dialog",
+                                     window);
+        }
         open_dialog();
         break;
 
@@ -152,22 +159,28 @@ bool Resources_RunResourceCopyingFlow() {
         break;
 
     case CANCELED:
-        if (!is_terminal_message_shown) {
+        if (!is_terminal_message_shown && should_use_modal_messages()) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION,
                                      "ISO selection canceled",
                                      "Resource import was canceled. Restart 3SX to pick an ISO and continue.",
                                      window);
             is_terminal_message_shown = true;
+        } else if (!is_terminal_message_shown) {
+            SDL_Log("ISO selection canceled. Restart 3SX to pick an ISO and continue.");
+            is_terminal_message_shown = true;
         }
         break;
 
     case COPY_ERROR:
-        if (!is_terminal_message_shown) {
+        if (!is_terminal_message_shown && should_use_modal_messages()) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,
                                      "Invalid iso",
                                      "The iso you provided doesn't contain the required files. Restart 3SX to try "
                                      "again with a different ISO.",
                                      window);
+            is_terminal_message_shown = true;
+        } else if (!is_terminal_message_shown) {
+            SDL_Log("Invalid ISO. Restart 3SX and try again with a different ISO.");
             is_terminal_message_shown = true;
         }
         break;
@@ -176,7 +189,11 @@ bool Resources_RunResourceCopyingFlow() {
         char* resources_path = Resources_GetPath(NULL);
         char* message = NULL;
         SDL_asprintf(&message, "You can find them at:\n%s", resources_path);
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Resources copied successfully", message, window);
+        if (should_use_modal_messages()) {
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Resources copied successfully", message, window);
+        } else {
+            SDL_Log("Resources copied successfully. You can find them at: %s", resources_path);
+        }
         SDL_free(resources_path);
         SDL_free(message);
         flow_state = INIT;
