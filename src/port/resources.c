@@ -5,9 +5,10 @@
 #include <SDL3/SDL.h>
 #include <cdio/iso9660.h>
 
-typedef enum FlowState { INIT, DIALOG_OPENED, COPY_ERROR, COPY_SUCCESS } ResourceCopyingFlowState;
+typedef enum FlowState { INIT, DIALOG_OPENED, CANCELED, COPY_ERROR, COPY_SUCCESS } ResourceCopyingFlowState;
 
 static ResourceCopyingFlowState flow_state = INIT;
+static bool is_terminal_message_shown = false;
 
 static bool is_running_in_flatpak() {
     const char* flatpak_id = SDL_getenv("FLATPAK_ID");
@@ -56,7 +57,7 @@ static void open_file_dialog_callback(void* userdata, const char* const* filelis
 
     if ((filelist == NULL) || (filelist[0] == NULL) || (filelist[0][0] == '\0')) {
         // Dialog was closed/cancelled or failed to open.
-        flow_state = INIT;
+        flow_state = CANCELED;
         return;
     }
 
@@ -110,9 +111,11 @@ static void open_file_dialog_callback(void* userdata, const char* const* filelis
 
 static void open_dialog() {
     flow_state = DIALOG_OPENED;
+    is_terminal_message_shown = false;
     prepare_window_for_dialog();
     const SDL_DialogFileFilter filter = { .name = "Game iso", .pattern = "iso" };
-    SDL_ShowOpenFileDialog(open_file_dialog_callback, NULL, window, &filter, 1, NULL, false);
+    SDL_Window* parent_window = is_running_in_flatpak() ? NULL : window;
+    SDL_ShowOpenFileDialog(open_file_dialog_callback, NULL, parent_window, &filter, 1, NULL, false);
 }
 
 char* Resources_GetPath(const char* file_path) {
@@ -148,10 +151,25 @@ bool Resources_RunResourceCopyingFlow() {
         // Wait for the callback to be called
         break;
 
+    case CANCELED:
+        if (!is_terminal_message_shown) {
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION,
+                                     "ISO selection canceled",
+                                     "Resource import was canceled. Restart 3SX to pick an ISO and continue.",
+                                     window);
+            is_terminal_message_shown = true;
+        }
+        break;
+
     case COPY_ERROR:
-        SDL_ShowSimpleMessageBox(
-            SDL_MESSAGEBOX_ERROR, "Invalid iso", "The iso you provided doesn't contain the required files", window);
-        open_dialog();
+        if (!is_terminal_message_shown) {
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,
+                                     "Invalid iso",
+                                     "The iso you provided doesn't contain the required files. Restart 3SX to try "
+                                     "again with a different ISO.",
+                                     window);
+            is_terminal_message_shown = true;
+        }
         break;
 
     case COPY_SUCCESS:
