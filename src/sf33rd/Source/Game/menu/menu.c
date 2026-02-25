@@ -4900,17 +4900,11 @@ const u8 Menu_Max_Data_Tr[2][2][6] = { { { 4, 6, 2, 1, 0, 0 }, { 3, 2, 3, 7, 0, 
 
 static void apply_training_hitbox_display(bool force_off) {
     if (force_off || Mode_Type != MODE_NORMAL_TRAINING || Training[0].contents[0][1][1] != 2) {
-        Clear_Training_Hitbox_Debug_Flags();
+        Set_Training_Hitbox_Display(false);
         return;
     }
 
-    Debug_w[17] = 0;
-    Debug_w[18] = 1;
-    Debug_w[19] = 1;
-    Debug_w[20] = 1;
-    Debug_w[21] = 0;
-    Debug_w[22] = 0;
-    Debug_w[23] = 0;
+    Set_Training_Hitbox_Display(true);
 }
 
 void Dummy_Move_Sub_LR(u16 sw, s16 id, s16 type, s16 cursor_id) {

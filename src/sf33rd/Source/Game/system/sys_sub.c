@@ -37,6 +37,7 @@
 #include <memory.h>
 
 u8 Candidate_Buff[16];
+static bool training_hitbox_display_enabled;
 
 // forward decls
 void Disp_Win_Record_Sub(u16 win_record, s16 zz);
@@ -235,6 +236,14 @@ void Setup_Play_Type() {
 void Clear_Flash_No() {
     F_No0[0] = F_No1[0] = F_No2[0] = F_No3[0] = 0;
     F_No0[1] = F_No1[1] = F_No2[1] = F_No3[1] = 0;
+}
+
+void Set_Training_Hitbox_Display(bool enabled) {
+    training_hitbox_display_enabled = enabled;
+}
+
+bool Is_Training_Hitbox_Display_Enabled() {
+    return training_hitbox_display_enabled;
 }
 
 bool Cut_Cut_Cut() {
@@ -983,22 +992,13 @@ void njWaitVSync_with_N() {
     while (1) {}
 }
 
-void Clear_Training_Hitbox_Debug_Flags() {
-    s16 ix;
-
-    for (ix = DEBUG_CURRENT_BOX_DATA; ix <= DEBUG_DISP_EFFECT_TYPE; ix++) {
-        Debug_w[ix] = 0;
-    }
-}
-
 void Soft_Reset_Sub() {
     FadeOut(1, 0xFF, 8);
     sound_all_off();
     SsBgmHalfVolume(0);
 
     if (Mode_Type == MODE_NORMAL_TRAINING || Mode_Type == MODE_PARRY_TRAINING) {
-        Clear_Training_Hitbox_Debug_Flags();
-        Disp_Attack_Data = 0;
+        Set_Training_Hitbox_Display(false);
     }
 
     if (task[TASK_GAME].condition == 0) {
