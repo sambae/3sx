@@ -75,7 +75,7 @@ void Dummy_Move_Sub_LR(u16 sw, s16 id, s16 type, s16 cursor_id);
 void Return_VS_Result_Sub(struct _TASK* task_ptr);
 void Exit_Replay_Save(struct _TASK* task_ptr);
 void Setup_NTr_Data(s16 ix);
-static void apply_training_hitbox_display(s32 force_off);
+static void apply_training_hitbox_display(bool force_off);
 s32 Check_Pad_in_Pause(struct _TASK* task_ptr);
 void Next_Be_Tr_Menu(struct _TASK* task_ptr);
 void Yes_No_Cursor_Exit_Training(struct _TASK* task_ptr, s16 cursor_id);
@@ -4074,7 +4074,7 @@ void Control_Player_Tr() {
 void Next_Be_Tr_Menu(struct _TASK* task_ptr) {
     s16 ix;
 
-    apply_training_hitbox_display(1);
+    apply_training_hitbox_display(true);
     task_ptr->r_no[0] = 11;
     task_ptr->r_no[1] = 0;
     task_ptr->r_no[2] = 0;
@@ -4621,7 +4621,7 @@ void Setup_NTr_Data(s16 ix) {
         break;
     }
 
-    apply_training_hitbox_display(0);
+    apply_training_hitbox_display(false);
 }
 
 void Check_Skip_Replay(s16 ix) {
@@ -4898,7 +4898,7 @@ void Dummy_Move_Sub(struct _TASK* task_ptr, s16 PL_id, s16 id, s16 type, s16 max
 const u8 Menu_Max_Data_Tr[2][2][6] = { { { 4, 6, 2, 1, 0, 0 }, { 3, 2, 3, 7, 0, 0 } },
                                        { { 2, 3, 1, 3, 0, 0 }, { 0, 0, 0, 0, 0, 0 } } };
 
-static void apply_training_hitbox_display(s32 force_off) {
+static void apply_training_hitbox_display(bool force_off) {
     if (force_off || Mode_Type != MODE_NORMAL_TRAINING || Training[0].contents[0][1][1] != 2) {
         Clear_Training_Hitbox_Debug_Flags();
         return;
