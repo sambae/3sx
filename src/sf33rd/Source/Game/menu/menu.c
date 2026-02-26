@@ -4898,13 +4898,16 @@ void Dummy_Move_Sub(struct _TASK* task_ptr, s16 PL_id, s16 id, s16 type, s16 max
 const u8 Menu_Max_Data_Tr[2][2][6] = { { { 4, 6, 2, 1, 0, 0 }, { 3, 2, 3, 7, 0, 0 } },
                                        { { 2, 3, 1, 3, 0, 0 }, { 0, 0, 0, 0, 0, 0 } } };
 
-static void apply_training_hitbox_display(bool force_off) {
-    if (force_off || Mode_Type != MODE_NORMAL_TRAINING || Training[0].contents[0][1][1] != 2) {
-        Set_Training_Hitbox_Display(false);
-        return;
-    }
+static bool is_data_plus_hitboxes_option_selected() {
+    return Training[0].contents[0][1][1] == 2;
+}
 
-    Set_Training_Hitbox_Display(true);
+static void apply_training_hitbox_display(bool force_off) {
+    if (force_off || Mode_Type != MODE_NORMAL_TRAINING || !is_data_plus_hitboxes_option_selected()) {
+        Set_Training_Hitbox_Display(false);
+    } else {
+        Set_Training_Hitbox_Display(true);
+    }
 }
 
 void Dummy_Move_Sub_LR(u16 sw, s16 id, s16 type, s16 cursor_id) {
