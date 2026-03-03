@@ -3,6 +3,7 @@
 
 #include "structs.h"
 #include <SDL3/SDL.h>
+#include <stdbool.h>
 
 typedef struct SDLGameRenderer_Vertex {
     struct {
@@ -33,6 +34,20 @@ typedef struct Sprite2 {
     unsigned int id;
 } Sprite2;
 
+typedef enum SDLGameRenderer_InputHistoryGlyph {
+    SDL_GAME_RENDERER_INPUT_GLYPH_UP = 0,
+    SDL_GAME_RENDERER_INPUT_GLYPH_UP_RIGHT,
+    SDL_GAME_RENDERER_INPUT_GLYPH_RIGHT,
+    SDL_GAME_RENDERER_INPUT_GLYPH_DOWN_RIGHT,
+    SDL_GAME_RENDERER_INPUT_GLYPH_DOWN,
+    SDL_GAME_RENDERER_INPUT_GLYPH_DOWN_LEFT,
+    SDL_GAME_RENDERER_INPUT_GLYPH_LEFT,
+    SDL_GAME_RENDERER_INPUT_GLYPH_UP_LEFT,
+    SDL_GAME_RENDERER_INPUT_GLYPH_PUNCH,
+    SDL_GAME_RENDERER_INPUT_GLYPH_KICK,
+    SDL_GAME_RENDERER_INPUT_GLYPH_COUNT,
+} SDLGameRenderer_InputHistoryGlyph;
+
 extern SDL_Texture* cps3_canvas;
 
 void SDLGameRenderer_Init(SDL_Renderer* renderer);
@@ -51,5 +66,7 @@ void SDLGameRenderer_DrawTexturedQuad(const Sprite* sprite, unsigned int color);
 void SDLGameRenderer_DrawSolidQuad(const Quad* vertices, unsigned int color);
 void SDLGameRenderer_DrawSprite(const Sprite* sprite, unsigned int color);
 void SDLGameRenderer_DrawSprite2(const Sprite2* sprite2);
+bool SDLGameRenderer_DrawInputHistoryGlyph(float x, float y, float z, SDLGameRenderer_InputHistoryGlyph glyph,
+                                           unsigned int color);
 
 #endif

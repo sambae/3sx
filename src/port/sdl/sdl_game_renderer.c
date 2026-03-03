@@ -1,9 +1,11 @@
 #include "port/sdl/sdl_game_renderer.h"
 #include "common.h"
+#include "input_history_glyph_data.h"
 #include "port/utils.h"
 #include "sf33rd/AcrSDK/ps2/flps2etc.h"
 #include "sf33rd/AcrSDK/ps2/flps2render.h"
 #include "sf33rd/AcrSDK/ps2/foundaps2.h"
+#include "sf33rd/Source/Common/PPGWork.h"
 #include "sf33rd/Source/Game/system/work_sys.h"
 
 #include <libgraph.h>
@@ -37,6 +39,7 @@ static SDL_Texture* textures_to_destroy[1024] = { NULL };
 static int textures_to_destroy_count = 0;
 static RenderTask render_tasks[RENDER_TASK_MAX] = { 0 };
 static int render_task_count = 0;
+static SDL_Texture* input_history_glyph_textures[SDL_GAME_RENDERER_INPUT_GLYPH_COUNT] = { NULL };
 
 // Debugging
 
@@ -215,6 +218,90 @@ static void lerp_fcolors(SDL_FColor* dest, const SDL_FColor* a, const SDL_FColor
     dest->a = LERP_FLOAT(a->a, b->a, x);
 }
 
+static void maybe_adjust_training_input_palette(int palette_index, int color_count, SDL_Color* colors) {
+    static const int training_input_bank = 31;
+    int i;
+
+    if (color_count <= 4 || training_input_bank >= ppgScrPal.total || ppgScrPal.handle[training_input_bank] == 0 ||
+        palette_index != (int)ppgScrPal.handle[training_input_bank] - 1) {
+        return;
+    }
+
+    // Force the whole bank to bright neutral tones first so no glyph tone resolves to black.
+    for (i = 0; i < color_count; i++) {
+        if (colors[i].a == SDL_ALPHA_TRANSPARENT) {
+            continue;
+        }
+
+        colors[i].r = 255;
+        colors[i].g = 255;
+        colors[i].b = 255;
+        colors[i].a = SDL_ALPHA_OPAQUE;
+    }
+
+    colors[1] = (SDL_Color){ 56, 56, 56, SDL_ALPHA_OPAQUE };
+    colors[2] = (SDL_Color){ 196, 196, 196, SDL_ALPHA_OPAQUE };
+    colors[3] = (SDL_Color){ 224, 224, 224, SDL_ALPHA_OPAQUE };
+    colors[4] = (SDL_Color){ 255, 255, 255, SDL_ALPHA_OPAQUE };
+}
+
+static SDL_Texture* create_input_history_glyph_texture(const unsigned char* tones) {
+    Uint8 pixels[INPUT_HISTORY_GLYPH_SIZE * INPUT_HISTORY_GLYPH_SIZE * 4];
+    static const SDL_Color edge_tone = { .r = 32, .g = 32, .b = 32, .a = SDL_ALPHA_OPAQUE };
+    static const SDL_Color face_tone = { .r = 255, .g = 255, .b = 255, .a = SDL_ALPHA_OPAQUE };
+
+    for (int i = 0; i < INPUT_HISTORY_GLYPH_SIZE * INPUT_HISTORY_GLYPH_SIZE; i++) {
+        const Uint8 tone = tones[i];
+        const int offset = i * 4;
+
+        switch (tone) {
+        case 2:
+            pixels[offset] = face_tone.r;
+            pixels[offset + 1] = face_tone.g;
+            pixels[offset + 2] = face_tone.b;
+            pixels[offset + 3] = face_tone.a;
+            break;
+
+        case 1:
+            pixels[offset] = edge_tone.r;
+            pixels[offset + 1] = edge_tone.g;
+            pixels[offset + 2] = edge_tone.b;
+            pixels[offset + 3] = edge_tone.a;
+            break;
+
+        default:
+            pixels[offset] = 0;
+            pixels[offset + 1] = 0;
+            pixels[offset + 2] = 0;
+            pixels[offset + 3] = SDL_ALPHA_TRANSPARENT;
+            break;
+        }
+    }
+
+    SDL_Surface* surface = SDL_CreateSurfaceFrom(INPUT_HISTORY_GLYPH_SIZE, INPUT_HISTORY_GLYPH_SIZE,
+                                                  SDL_PIXELFORMAT_RGBA32, pixels, INPUT_HISTORY_GLYPH_SIZE * 4);
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(_renderer, surface);
+    SDL_DestroySurface(surface);
+
+    if (texture == NULL) {
+        return NULL;
+    }
+
+    SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+    return texture;
+}
+
+static void ensure_input_history_glyph_textures() {
+    if (input_history_glyph_textures[0] != NULL) {
+        return;
+    }
+
+    for (int i = 0; i < SDL_GAME_RENDERER_INPUT_GLYPH_COUNT; i++) {
+        input_history_glyph_textures[i] = create_input_history_glyph_texture(input_history_glyph_tones[i]);
+    }
+}
+
 // Lifecycle
 
 void SDLGameRenderer_Init(SDL_Renderer* renderer) {
@@ -222,6 +309,7 @@ void SDLGameRenderer_Init(SDL_Renderer* renderer) {
     cps3_canvas =
         SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, cps3_width, cps3_height);
     SDL_SetTextureScaleMode(cps3_canvas, SDL_SCALEMODE_NEAREST);
+    ensure_input_history_glyph_textures();
 }
 
 void SDLGameRenderer_BeginFrame() {
@@ -398,6 +486,8 @@ void SDLGameRenderer_CreatePalette(unsigned int ph) {
         break;
     }
 
+    maybe_adjust_training_input_palette(palette_index, color_count, colors);
+
     SDL_Palette* palette = SDL_CreatePalette(color_count);
     SDL_SetPaletteColors(palette, colors, 0, color_count);
     palettes[palette_index] = palette;
@@ -450,10 +540,10 @@ void SDLGameRenderer_SetTexture(unsigned int th) {
     push_texture(texture);
 }
 
-static void draw_quad(const SDLGameRenderer_Vertex* vertices, bool textured) {
+static void draw_quad_with_texture(const SDLGameRenderer_Vertex* vertices, SDL_Texture* texture) {
     RenderTask task;
     task.index = render_task_count;
-    task.texture = textured ? get_texture() : NULL;
+    task.texture = texture;
     task.z = flPS2ConvScreenFZ(vertices[0].coord.z);
 
     SDL_zeroa(task.vertices);
@@ -462,7 +552,7 @@ static void draw_quad(const SDLGameRenderer_Vertex* vertices, bool textured) {
         task.vertices[i].position.x = vertices[i].coord.x;
         task.vertices[i].position.y = vertices[i].coord.y;
 
-        if (textured) {
+        if (texture != NULL) {
             task.vertices[i].tex_coord.x = vertices[i].tex_coord.s;
             task.vertices[i].tex_coord.y = vertices[i].tex_coord.t;
         }
@@ -471,6 +561,10 @@ static void draw_quad(const SDLGameRenderer_Vertex* vertices, bool textured) {
     }
 
     push_render_task(&task);
+}
+
+static void draw_quad(const SDLGameRenderer_Vertex* vertices, bool textured) {
+    draw_quad_with_texture(vertices, textured ? get_texture() : NULL);
 }
 
 void SDLGameRenderer_DrawTexturedQuad(const Sprite* sprite, unsigned int color) {
@@ -555,4 +649,56 @@ void SDLGameRenderer_DrawSprite2(const Sprite2* sprite2) {
     }
 
     SDLGameRenderer_DrawSprite(&sprite, sprite2->vertex_color);
+}
+
+bool SDLGameRenderer_DrawInputHistoryGlyph(float x, float y, float z, SDLGameRenderer_InputHistoryGlyph glyph,
+                                           unsigned int color) {
+    SDLGameRenderer_Vertex vertices[4];
+    SDL_Texture* texture = NULL;
+    const float width = INPUT_HISTORY_GLYPH_SIZE;
+    const float height = INPUT_HISTORY_GLYPH_SIZE;
+
+    if ((glyph < 0) || (glyph >= SDL_GAME_RENDERER_INPUT_GLYPH_COUNT)) {
+        return false;
+    }
+
+    if (_renderer == NULL) {
+        return false;
+    }
+
+    ensure_input_history_glyph_textures();
+    texture = input_history_glyph_textures[glyph];
+
+    if (texture == NULL) {
+        return false;
+    }
+
+    SDL_zeroa(vertices);
+
+    for (int i = 0; i < 4; i++) {
+        vertices[i].coord.z = z;
+        vertices[i].coord.w = 1.0f;
+        vertices[i].color = color;
+    }
+
+    vertices[0].coord.x = x;
+    vertices[0].coord.y = y;
+    vertices[1].coord.x = x + width;
+    vertices[1].coord.y = y;
+    vertices[2].coord.x = x;
+    vertices[2].coord.y = y + height;
+    vertices[3].coord.x = x + width;
+    vertices[3].coord.y = y + height;
+
+    vertices[0].tex_coord.s = 0.0f;
+    vertices[0].tex_coord.t = 0.0f;
+    vertices[1].tex_coord.s = 1.0f;
+    vertices[1].tex_coord.t = 0.0f;
+    vertices[2].tex_coord.s = 0.0f;
+    vertices[2].tex_coord.t = 1.0f;
+    vertices[3].tex_coord.s = 1.0f;
+    vertices[3].tex_coord.t = 1.0f;
+
+    draw_quad_with_texture(vertices, texture);
+    return true;
 }
