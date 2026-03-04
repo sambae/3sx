@@ -510,6 +510,11 @@ void Game2_1() {
 
     set_EXE_flag();
     ppgPurgeFromVRAM(5);
+
+    if (Disp_Cockpit) {
+        Time_Control();
+    }
+
     Player_control();
     TATE00();
     Game_Management();
@@ -519,7 +524,6 @@ void Game2_1() {
     Basic_Sub_Ex();
 
     if (Disp_Cockpit) {
-        Time_Control();
         vital_cont_main();
         player_face();
         player_name();
