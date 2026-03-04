@@ -1758,16 +1758,15 @@ void Time_Control() {
         return;
     }
 
-    if (Game_pause != 0x81) {
-        if (Control_Time >= Limit_Time) {
-            Control_Time = Limit_Time;
-            return;
-        }
+    if (Game_pause == 0x81) {
+        return;
+    }
 
-        if (--Time_in_Time == 0) {
-            Time_in_Time = 60;
-            Control_Time += 1;
-        }
+    if (Control_Time >= Limit_Time) {
+        Control_Time = Limit_Time;
+    } else if (--Time_in_Time == 0) {
+        Time_in_Time = 60;
+        Control_Time += 1;
     }
 }
 
