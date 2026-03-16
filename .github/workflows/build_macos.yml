@@ -1,8 +1,10 @@
 name: Build (macOS)
 
 on:
-    pull_request:
-        branches: [ "main" ]
+    workflow_dispatch:
+    # Disabled while iterating on the Flatpak PR workflow.
+    # pull_request:
+    #     branches: [ "main" ]
 
 jobs:
     build:
