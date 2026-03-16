@@ -56,6 +56,67 @@ modules:
         url: https://github.com/libcdio/libcdio/releases/download/2.3.0/libcdio-2.3.0.tar.gz
         sha256: 37bcb13296febbcff9dc4485834bac09212cb463c31fcea52f70ee1dd3a5a5de
 
+  - name: gekkonet
+    buildsystem: simple
+    build-commands:
+      - cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DNO_ASIO_BUILD=ON -DBUILD_SHARED_LIBS=OFF
+      - cmake --build build --parallel
+      - install -d /app/include /app/lib
+      - cp -a GekkoLib/include/. /app/include/
+      - cp "$(find build -name 'libGekkoNet*.a' -print -quit)" /app/lib/libGekkoNet.a
+    sources:
+      - type: git
+        url: https://github.com/HeatXD/GekkoNet.git
+        commit: 7be848c7e71a22fe8e827742127f06f0a6b1ec12
+
+  - name: sdl3-net
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_INSTALL_PREFIX=/app
+      - -DCMAKE_PREFIX_PATH=/app
+      - -DBUILD_SHARED_LIBS=OFF
+      - -DSDLNET_INSTALL=ON
+    sources:
+      - type: git
+        url: https://github.com/libsdl-org/SDL_net.git
+        commit: 92022dc5f604b435e346cf6d56cd80cf05271815
+
+  - name: minizip-ng
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_INSTALL_PREFIX=/app
+      - -DMZ_COMPAT=OFF
+      - -DMZ_ZLIB_FLAVOR=zlib
+      - -DMZ_BZIP2=OFF
+      - -DMZ_LZMA=OFF
+      - -DMZ_PPMD=OFF
+      - -DMZ_ZSTD=OFF
+      - -DMZ_LIBCOMP=OFF
+      - -DMZ_PKCRYPT=OFF
+      - -DMZ_WZAES=OFF
+      - -DMZ_OPENSSL=OFF
+      - -DMZ_LIBBSD=OFF
+      - -DMZ_DECOMPRESS_ONLY=ON
+    sources:
+      - type: git
+        url: https://github.com/zlib-ng/minizip-ng.git
+        tag: 4.1.0
+
+  - name: tf-psa-crypto
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX=/app
+      - -DENABLE_PROGRAMS=OFF
+      - -DENABLE_TESTING=OFF
+      - -DUSE_SHARED_TF_PSA_CRYPTO_LIBRARY=OFF
+      - -DUSE_STATIC_TF_PSA_CRYPTO_LIBRARY=ON
+      - -DTF_PSA_CRYPTO_CONFIG_FILE=configs/crypto-config-ccm-aes-sha256.h
+    sources:
+      - type: archive
+        url: https://github.com/Mbed-TLS/TF-PSA-Crypto/releases/download/tf-psa-crypto-1.0.0/tf-psa-crypto-1.0.0.tar.bz2
+        sha256: 31f0df2ca17897b5db2757cb0307dcde267292ba21ade831663d972a7a5b7d40
+
   - name: 3sx
     buildsystem: cmake-ninja
     config-opts:
@@ -63,6 +124,10 @@ modules:
       - -DFFMPEG_ROOT=/app
       - -DSDL3_ROOT=/app
       - -DLIBCDIO_ROOT=/app
+      - -DGEKKONET_ROOT=/app
+      - -DSDL3_NET_ROOT=/app
+      - -DMINIZIP_NG_ROOT=/app
+      - -DTF_PSA_CRYPTO_ROOT=/app
     sources:
       - type: dir
         path: .
