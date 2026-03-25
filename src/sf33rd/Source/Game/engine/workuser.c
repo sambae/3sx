@@ -329,6 +329,8 @@ s8 Menu_Page_Buff;
 u8 Reset_Bootrom;
 u8 Decide_ID;
 s8 Training_Cursor;
+u8 Training_Menu_From_Pause;
+u8 Training_Auto_Start;
 s8 Lag_Timer;
 u8* Lag_Ptr;
 u8 CPU_Time_Lag[2];

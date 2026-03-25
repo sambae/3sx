@@ -13,7 +13,7 @@
 const u8 Contents_Check_Data_A3[23] = { 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0 };
 
 s8* Letter_Data_A3[23][8] = {
-    { "NORMAL MODE",
+    { "RESUME",
       "RECORDING MODE",
       "REPLAY",
       "DUMMY SETTING",
